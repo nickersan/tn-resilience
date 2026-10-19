@@ -1,0 +1,23 @@
+# Builds every push to main and releases it when there's a feat or fix since the last release, and builds Renovate's
+# branches as checks - see nickersan/actions
+name: build
+
+on:
+  push:
+    branches:
+      - main
+      - 'renovate/**'
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    uses: nickersan/actions/.github/workflows/maven.yaml@main
+    secrets: inherit
