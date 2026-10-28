@@ -280,8 +280,8 @@ class ResilienceInterceptorTest
   @Test
   void shouldTakeSettingsFromGroupThenDefaultsThenBuiltIn()
   {
-    Settings own = new Settings(null, Duration.ofSeconds(30), null, null, null, null, null, null, null, null, null, null);
-    Settings defaults = new Settings(Duration.ofSeconds(1), Duration.ofSeconds(9), null, null, null, null, null, null, null, null, null, null);
+    Settings own = new Settings(null, Duration.ofSeconds(30), null, null, null, null, null, null, null, null, null, null, null);
+    Settings defaults = new Settings(Duration.ofSeconds(1), Duration.ofSeconds(9), null, null, null, null, null, null, null, null, null, null, null);
     ResilienceProperties properties = new ResilienceProperties(true, defaults, java.util.Map.of(GROUP, own));
 
     Settings settings = properties.forGroup(GROUP);
@@ -291,6 +291,18 @@ class ResilienceInterceptorTest
     assertEquals(Settings.BUILT_IN.maxAttempts(), settings.maxAttempts());
     assertEquals(Duration.ofSeconds(9), properties.forGroup("another").readTimeout());
     assertTrue(properties.forGroup("another").maxConcurrentCalls() > 0);
+  }
+
+  @Test
+  void shouldTryServiceWithTenCallsBeforeClosingUnlessSet()
+  {
+    Settings own = new Settings(null, null, null, null, null, null, 2, null, null, null, null, null, null);
+    Settings defaults = new Settings(null, null, null, null, null, null, 4, null, null, null, null, null, null);
+    ResilienceProperties properties = new ResilienceProperties(true, defaults, java.util.Map.of(GROUP, own));
+
+    assertEquals(10, new ResilienceProperties(true, new Settings(null, null, null, null, null, null, null, null, null, null, null, null, null), java.util.Map.of()).forGroup(GROUP).halfOpenCalls());
+    assertEquals(2, properties.forGroup(GROUP).halfOpenCalls());
+    assertEquals(4, properties.forGroup("another").halfOpenCalls());
   }
 
   /** Quick to trip: four failures out of four calls open the circuit, and a repeat waits no time. */

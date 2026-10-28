@@ -131,6 +131,20 @@ class ResilienceConfigurerIntegrationTest
   }
 
   @Test
+  void shouldBindHalfOpenCallsFromConfiguration()
+  {
+    new ApplicationContextRunner()
+      .withConfiguration(AutoConfigurations.of(ResilienceAutoConfiguration.class))
+      .withPropertyValues("tn.resilience.defaults.half-open-calls=1", "tn.resilience.groups." + GROUP + ".half-open-calls=3")
+      .run(context ->
+      {
+        ResilienceProperties properties = context.getBean(ResilienceProperties.class);
+        assertEquals(3, properties.forGroup(GROUP).halfOpenCalls());
+        assertEquals(1, properties.forGroup("another").halfOpenCalls());
+      });
+  }
+
+  @Test
   void shouldNotProtectGroupsWhenDisabled()
   {
     new ApplicationContextRunner()

@@ -25,7 +25,10 @@ tn:
 ```
 
 Settings: `connect-timeout`, `read-timeout`, `failure-rate-threshold`, `sliding-window-size`, `minimum-number-of-calls`,
-`open-state-wait`, `max-concurrent-calls`, `bulkhead-wait`, `calls-per-period`, `rate-limit-period`, `max-attempts`, `retry-wait`.
+`open-state-wait`, `half-open-calls`, `max-concurrent-calls`, `bulkhead-wait`, `calls-per-period`, `rate-limit-period`, `max-attempts`, `retry-wait`.
+
+`half-open-calls` (default 10, Resilience4j's own) is how many calls an open circuit lets through to try the service once `open-state-wait`
+has passed; it closes when they have all gone well. Set it low to recover quickly, e.g. `TN_RESILIENCE_DEFAULTS_HALFOPENCALLS=1`.
 
 ## Looking at the protection
 
@@ -46,6 +49,7 @@ reading it never counts as a call. It is absent when `tn.resilience.enabled` is 
 ```
 
 - `state` is `CLOSED`, `OPEN`, `HALF_OPEN`, `DISABLED`, `FORCED_OPEN` or `METRICS_ONLY`. An open circuit shows as `OPEN` until the first call
-  after `open-state-wait`, which moves it to `HALF_OPEN`; it closes once the trial calls have gone well.
+  after `open-state-wait`, which moves it to `HALF_OPEN`; it closes once `half-open-calls` trial calls have gone well. State only moves when a
+  call is made: nothing changes it while the service is idle, and reading the endpoint is not a call.
 - `failureRate` is a percentage, `null` until `minimum-number-of-calls` have been seen.
 - A service that calls no other answers `{"groups": {}}`. Groups are listed in the order they were created.

@@ -13,6 +13,7 @@ class TestSettings
   private Integer slidingWindowSize;
   private Integer minimumNumberOfCalls;
   private Duration openStateWait;
+  private Integer halfOpenCalls;
   private Integer maxConcurrentCalls;
   private Duration bulkheadWait;
   private Integer callsPerPeriod;
@@ -28,6 +29,7 @@ class TestSettings
     slidingWindowSize = from.slidingWindowSize();
     minimumNumberOfCalls = from.minimumNumberOfCalls();
     openStateWait = from.openStateWait();
+    halfOpenCalls = from.halfOpenCalls();
     maxConcurrentCalls = from.maxConcurrentCalls();
     bulkheadWait = from.bulkheadWait();
     callsPerPeriod = from.callsPerPeriod();
@@ -69,6 +71,12 @@ class TestSettings
   TestSettings withOpenStateWait(Duration openStateWait)
   {
     this.openStateWait = openStateWait;
+    return this;
+  }
+
+  TestSettings withHalfOpenCalls(int halfOpenCalls)
+  {
+    this.halfOpenCalls = halfOpenCalls;
     return this;
   }
 
@@ -117,6 +125,7 @@ class TestSettings
       slidingWindowSize,
       minimumNumberOfCalls,
       openStateWait,
+      halfOpenCalls,
       maxConcurrentCalls,
       bulkheadWait,
       callsPerPeriod,

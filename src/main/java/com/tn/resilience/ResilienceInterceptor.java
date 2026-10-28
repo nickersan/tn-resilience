@@ -65,6 +65,7 @@ public class ResilienceInterceptor implements ClientHttpRequestInterceptor
         .slidingWindowSize(settings.slidingWindowSize())
         .minimumNumberOfCalls(settings.minimumNumberOfCalls())
         .waitDurationInOpenState(settings.openStateWait())
+        .permittedNumberOfCallsInHalfOpenState(settings.halfOpenCalls())
         .build()
     );
 

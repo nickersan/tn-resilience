@@ -49,6 +49,7 @@ public record ResilienceProperties(
    * @param slidingWindowSize       how many recent calls the circuit breaker looks at
    * @param minimumNumberOfCalls    how many calls must be seen before the circuit can open
    * @param openStateWait           how long the circuit stays open before trying the service again
+   * @param halfOpenCalls          how many calls the circuit lets through to try the service once it has waited; it closes when they have all gone well
    * @param maxConcurrentCalls      how many calls to the service may be in progress at once
    * @param bulkheadWait            how long a call waits for a place when all are taken, before failing
    * @param callsPerPeriod          how many calls to the service are allowed in each rate limit period
@@ -63,6 +64,7 @@ public record ResilienceProperties(
     Integer slidingWindowSize,
     Integer minimumNumberOfCalls,
     Duration openStateWait,
+    Integer halfOpenCalls,
     Integer maxConcurrentCalls,
     Duration bulkheadWait,
     Integer callsPerPeriod,
@@ -78,6 +80,7 @@ public record ResilienceProperties(
       20,
       10,
       Duration.ofSeconds(10),
+      10,
       50,
       Duration.ofMillis(100),
       500,
@@ -96,6 +99,7 @@ public record ResilienceProperties(
         slidingWindowSize != null ? slidingWindowSize : other.slidingWindowSize,
         minimumNumberOfCalls != null ? minimumNumberOfCalls : other.minimumNumberOfCalls,
         openStateWait != null ? openStateWait : other.openStateWait,
+        halfOpenCalls != null ? halfOpenCalls : other.halfOpenCalls,
         maxConcurrentCalls != null ? maxConcurrentCalls : other.maxConcurrentCalls,
         bulkheadWait != null ? bulkheadWait : other.bulkheadWait,
         callsPerPeriod != null ? callsPerPeriod : other.callsPerPeriod,

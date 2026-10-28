@@ -93,7 +93,25 @@ class ResilienceEndpointTest
   }
 
   @Test
-  void shouldReportClosedAgainOnceServiceIsBackAndCircuitHasRested() throws Exception
+  void shouldReportClosedAgainOnceServiceIsBackAndConfiguredCallsHaveSucceeded() throws Exception
+  {
+    ResilienceInterceptor interceptor = interceptor(GROUP, settings().withOpenStateWait(Duration.ofMillis(50)).withHalfOpenCalls(3));
+
+    for (int i = 0; i < 4; i++) call(interceptor, HttpStatus.INTERNAL_SERVER_ERROR);
+    Thread.sleep(100);
+    assertEquals("OPEN", circuit().state(), "the state moves only when a call is made");
+
+    call(interceptor, HttpStatus.OK);
+    assertEquals("HALF_OPEN", circuit().state());
+    call(interceptor, HttpStatus.OK);
+    assertEquals("HALF_OPEN", circuit().state());
+    call(interceptor, HttpStatus.OK);
+
+    assertEquals("CLOSED", circuit().state());
+  }
+
+  @Test
+  void shouldNeedTenGoodCallsToCloseByDefault() throws Exception
   {
     ResilienceInterceptor interceptor = interceptor(GROUP, settings().withOpenStateWait(Duration.ofMillis(50)));
 
