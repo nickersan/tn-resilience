@@ -101,6 +101,27 @@ public class ResilienceInterceptor implements ClientHttpRequestInterceptor
     });
   }
 
+  /** The name of the group of services this protects calls to. */
+  public String group()
+  {
+    return group;
+  }
+
+  CircuitBreaker circuitBreaker()
+  {
+    return circuitBreaker;
+  }
+
+  Bulkhead bulkhead()
+  {
+    return bulkhead;
+  }
+
+  RateLimiter rateLimiter()
+  {
+    return rateLimiter;
+  }
+
   @Override
   public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException
   {

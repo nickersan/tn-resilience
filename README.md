@@ -26,3 +26,26 @@ tn:
 
 Settings: `connect-timeout`, `read-timeout`, `failure-rate-threshold`, `sliding-window-size`, `minimum-number-of-calls`,
 `open-state-wait`, `max-concurrent-calls`, `bulkhead-wait`, `calls-per-period`, `rate-limit-period`, `max-attempts`, `retry-wait`.
+
+## Looking at the protection
+
+With Actuator on the classpath the state of every group's protection is the read-only `resilience` endpoint
+(`/actuator/resilience`, once exposed with `management.endpoints.web.exposure.include`). It is not part of the service's health, and
+reading it never counts as a call. It is absent when `tn.resilience.enabled` is false.
+
+```json
+{
+  "groups": {
+    "tn-user-service": {
+      "circuitBreaker": {"state": "CLOSED", "failureRate": null, "bufferedCalls": 0, "failedCalls": 0, "notPermittedCalls": 0},
+      "bulkhead": {"availableConcurrentCalls": 50, "maxAllowedConcurrentCalls": 50},
+      "rateLimiter": {"availablePermissions": 500}
+    }
+  }
+}
+```
+
+- `state` is `CLOSED`, `OPEN`, `HALF_OPEN`, `DISABLED`, `FORCED_OPEN` or `METRICS_ONLY`. An open circuit shows as `OPEN` until the first call
+  after `open-state-wait`, which moves it to `HALF_OPEN`; it closes once the trial calls have gone well.
+- `failureRate` is a percentage, `null` until `minimum-number-of-calls` have been seen.
+- A service that calls no other answers `{"groups": {}}`. Groups are listed in the order they were created.

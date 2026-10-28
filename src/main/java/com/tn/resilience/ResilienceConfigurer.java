@@ -14,16 +14,23 @@ import com.tn.resilience.ResilienceProperties.Settings;
 public class ResilienceConfigurer implements RestClientHttpServiceGroupConfigurer
 {
   private final ResilienceProperties properties;
+  private final ResilienceGroups groups;
 
   public ResilienceConfigurer(ResilienceProperties properties)
   {
+    this(properties, new ResilienceGroups());
+  }
+
+  public ResilienceConfigurer(ResilienceProperties properties, ResilienceGroups groups)
+  {
     this.properties = properties;
+    this.groups = groups;
   }
 
   @Override
-  public void configureGroups(Groups<RestClient.Builder> groups)
+  public void configureGroups(Groups<RestClient.Builder> clients)
   {
-    groups.forEachClient((group, builder) -> configure(group.name(), builder));
+    clients.forEachClient((group, builder) -> configure(group.name(), builder));
   }
 
   /** Protects the calls a client will make to the named group. */
@@ -31,8 +38,11 @@ public class ResilienceConfigurer implements RestClientHttpServiceGroupConfigure
   {
     Settings settings = properties.forGroup(group);
 
+    ResilienceInterceptor interceptor = new ResilienceInterceptor(group, settings);
+    groups.add(interceptor);
+
     builder
       .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(HttpClientSettings.defaults().withTimeouts(settings.connectTimeout(), settings.readTimeout())))
-      .requestInterceptor(new ResilienceInterceptor(group, settings));
+      .requestInterceptor(interceptor);
   }
 }

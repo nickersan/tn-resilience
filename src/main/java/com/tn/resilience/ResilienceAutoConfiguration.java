@@ -1,10 +1,12 @@
 package com.tn.resilience;
 
+import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.support.RestClientHttpServiceGroupConfigurer;
 
 /**
@@ -18,8 +20,26 @@ import org.springframework.web.client.support.RestClientHttpServiceGroupConfigur
 public class ResilienceAutoConfiguration
 {
   @Bean
-  ResilienceConfigurer resilienceConfigurer(ResilienceProperties properties)
+  ResilienceGroups resilienceGroups()
   {
-    return new ResilienceConfigurer(properties);
+    return new ResilienceGroups();
+  }
+
+  @Bean
+  ResilienceConfigurer resilienceConfigurer(ResilienceProperties properties, ResilienceGroups groups)
+  {
+    return new ResilienceConfigurer(properties, groups);
+  }
+
+  /** Lets the state of the protection be read as the {@code resilience} endpoint, where Actuator is on the classpath. */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnClass(Endpoint.class)
+  static class EndpointConfiguration
+  {
+    @Bean
+    ResilienceEndpoint resilienceEndpoint(ResilienceGroups groups)
+    {
+      return new ResilienceEndpoint(groups);
+    }
   }
 }
