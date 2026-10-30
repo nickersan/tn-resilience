@@ -36,6 +36,12 @@ With Actuator on the classpath the state of every group's protection is the read
 (`/actuator/resilience`, once exposed with `management.endpoints.web.exposure.include`). It is not part of the service's health, and
 reading it never counts as a call. It is absent when `tn.resilience.enabled` is false.
 
+It is read-only unless `management.endpoint.resilience.access=unrestricted` is set, which allows closing the circuit breakers: `POST /actuator/resilience`
+closes every group's, `POST /actuator/resilience/{group}` one group's (a group that does not exist is a 400). A reset forgets the calls the breaker
+had counted, and answers with the state afterwards, as the read does. It is for an environment that stops and starts a service on purpose (an
+acceptance suite), where a caller's breaker should not have to learn by a call that the service is back; leave it off elsewhere.
+Actuator only takes a body of JSON: `wget --header 'Content-Type: application/json' --post-data '{}' http://localhost:8080/actuator/resilience`.
+
 ```json
 {
   "groups": {

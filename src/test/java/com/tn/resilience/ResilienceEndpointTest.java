@@ -11,6 +11,9 @@ import java.time.Duration;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.actuate.endpoint.Access;
+import org.springframework.boot.actuate.endpoint.InvalidEndpointRequestException;
+import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.client.ClientHttpResponse;
@@ -151,6 +154,61 @@ class ResilienceEndpointTest
     for (int i = 0; i < 100; i++) endpoint.resilience();
 
     assertEquals(before, endpoint.resilience().groups().get(GROUP));
+  }
+
+  @Test
+  void shouldCloseAnOpenCircuitWhenReset() throws IOException
+  {
+    ResilienceInterceptor interceptor = interceptor(GROUP, settings().withOpenStateWait(Duration.ofSeconds(30)));
+    for (int i = 0; i < 4; i++) call(interceptor, HttpStatus.INTERNAL_SERVER_ERROR);
+    assertThrows(ServiceUnavailableException.class, () -> call(interceptor, HttpStatus.OK));
+    assertEquals("OPEN", circuit().state());
+
+    Circuit reset = endpoint.reset(GROUP).groups().get(GROUP).circuitBreaker();
+
+    assertEquals("CLOSED", reset.state());
+    assertEquals(0, reset.bufferedCalls());
+    assertEquals(0, reset.failedCalls());
+    call(interceptor, HttpStatus.OK);
+  }
+
+  @Test
+  void shouldResetEveryGroupWhenNoneIsNamed() throws IOException
+  {
+    ResilienceInterceptor user = interceptor(GROUP, settings().withOpenStateWait(Duration.ofSeconds(30)));
+    ResilienceInterceptor media = interceptor("tn-media-service", settings().withOpenStateWait(Duration.ofSeconds(30)));
+    for (int i = 0; i < 4; i++)
+    {
+      call(user, HttpStatus.INTERNAL_SERVER_ERROR);
+      call(media, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    ResilienceEndpoint.Report report = endpoint.reset();
+
+    assertEquals("CLOSED", report.groups().get(GROUP).circuitBreaker().state());
+    assertEquals("CLOSED", report.groups().get("tn-media-service").circuitBreaker().state());
+  }
+
+  @Test
+  void shouldLeaveOtherGroupsAloneWhenOneIsReset() throws IOException
+  {
+    interceptor(GROUP, settings());
+    ResilienceInterceptor media = interceptor("tn-media-service", settings().withOpenStateWait(Duration.ofSeconds(30)));
+    for (int i = 0; i < 4; i++) call(media, HttpStatus.INTERNAL_SERVER_ERROR);
+
+    assertEquals("OPEN", endpoint.reset(GROUP).groups().get("tn-media-service").circuitBreaker().state());
+  }
+
+  @Test
+  void shouldBeReadOnlyUnlessAccessIsGiven()
+  {
+    assertEquals(Access.READ_ONLY, ResilienceEndpoint.class.getAnnotation(Endpoint.class).defaultAccess());
+  }
+
+  @Test
+  void shouldRefuseToResetAGroupThatIsNotThere()
+  {
+    assertThrows(InvalidEndpointRequestException.class, () -> endpoint.reset("tn-user-service"));
   }
 
   private Circuit circuit()
