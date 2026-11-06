@@ -126,15 +126,9 @@ public class ResilienceInterceptor implements ClientHttpRequestInterceptor
   @Override
   public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException
   {
-    Supplier<ClientHttpResponse> call = () -> attempt(request, body, execution);
-    call = CircuitBreaker.decorateSupplier(circuitBreaker, call);
-    call = Bulkhead.decorateSupplier(bulkhead, call);
-    call = RateLimiter.decorateSupplier(rateLimiter, call);
-    if (REPEATABLE.contains(request.getMethod())) call = Retry.decorateSupplier(retry, call);
-
     try
     {
-      return call.get();
+      return protectedCall(request, body, execution).get();
     }
     catch (ServerFailure e)
     {
@@ -144,18 +138,31 @@ public class ResilienceInterceptor implements ClientHttpRequestInterceptor
     {
       throw e.getCause();
     }
-    catch (CallNotPermittedException e)
+    catch (CallNotPermittedException | BulkheadFullException | RequestNotPermitted e)
     {
-      throw unavailable(Reason.CIRCUIT_OPEN, circuitOpenWait, e);
+      throw refused(e);
     }
-    catch (BulkheadFullException e)
-    {
-      throw unavailable(Reason.BULKHEAD_FULL, null, e);
-    }
-    catch (RequestNotPermitted e)
-    {
-      throw unavailable(Reason.RATE_LIMITED, rateLimitPeriod, e);
-    }
+  }
+
+  /** The call inside the circuit breaker, bulkhead and rate limiter, and, for a method that can be repeated, inside the retry too. */
+  private Supplier<ClientHttpResponse> protectedCall(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+  {
+    Supplier<ClientHttpResponse> call = () -> attempt(request, body, execution);
+    call = CircuitBreaker.decorateSupplier(circuitBreaker, call);
+    call = Bulkhead.decorateSupplier(bulkhead, call);
+    call = RateLimiter.decorateSupplier(rateLimiter, call);
+    if (REPEATABLE.contains(request.getMethod())) call = Retry.decorateSupplier(retry, call);
+
+    return call;
+  }
+
+  /** What a call the protection refused is told as: unavailable, for the reason it was refused, and for how long where that is known. */
+  private ServiceUnavailableException refused(RuntimeException e)
+  {
+    if (e instanceof CallNotPermittedException) return unavailable(Reason.CIRCUIT_OPEN, circuitOpenWait, e);
+    if (e instanceof BulkheadFullException) return unavailable(Reason.BULKHEAD_FULL, null, e);
+
+    return unavailable(Reason.RATE_LIMITED, rateLimitPeriod, e);
   }
 
   private ClientHttpResponse attempt(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)

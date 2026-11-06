@@ -93,20 +93,25 @@ public record ResilienceProperties(
     Settings orElse(Settings other)
     {
       return new Settings(
-        connectTimeout != null ? connectTimeout : other.connectTimeout,
-        readTimeout != null ? readTimeout : other.readTimeout,
-        failureRateThreshold != null ? failureRateThreshold : other.failureRateThreshold,
-        slidingWindowSize != null ? slidingWindowSize : other.slidingWindowSize,
-        minimumNumberOfCalls != null ? minimumNumberOfCalls : other.minimumNumberOfCalls,
-        openStateWait != null ? openStateWait : other.openStateWait,
-        halfOpenCalls != null ? halfOpenCalls : other.halfOpenCalls,
-        maxConcurrentCalls != null ? maxConcurrentCalls : other.maxConcurrentCalls,
-        bulkheadWait != null ? bulkheadWait : other.bulkheadWait,
-        callsPerPeriod != null ? callsPerPeriod : other.callsPerPeriod,
-        rateLimitPeriod != null ? rateLimitPeriod : other.rateLimitPeriod,
-        maxAttempts != null ? maxAttempts : other.maxAttempts,
-        retryWait != null ? retryWait : other.retryWait
+        first(connectTimeout, other.connectTimeout),
+        first(readTimeout, other.readTimeout),
+        first(failureRateThreshold, other.failureRateThreshold),
+        first(slidingWindowSize, other.slidingWindowSize),
+        first(minimumNumberOfCalls, other.minimumNumberOfCalls),
+        first(openStateWait, other.openStateWait),
+        first(halfOpenCalls, other.halfOpenCalls),
+        first(maxConcurrentCalls, other.maxConcurrentCalls),
+        first(bulkheadWait, other.bulkheadWait),
+        first(callsPerPeriod, other.callsPerPeriod),
+        first(rateLimitPeriod, other.rateLimitPeriod),
+        first(maxAttempts, other.maxAttempts),
+        first(retryWait, other.retryWait)
       );
+    }
+
+    private static <T> T first(T setting, T fallback)
+    {
+      return setting != null ? setting : fallback;
     }
   }
 }
