@@ -7,7 +7,7 @@
   <parent>
     <groupId>com.tn</groupId>
     <artifactId>tn-parent</artifactId>
-    <version>4.0.3</version>
+    <version>4.1.0</version>
   </parent>
 
   <groupId>com.tn.resilience</groupId>
